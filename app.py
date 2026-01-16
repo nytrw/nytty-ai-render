@@ -1,8 +1,10 @@
-import os
-import requests
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+import requests
+import os
 
 app = Flask(__name__)
+CORS(app)  # <--- This will automatically add the proper CORS headers
 
 HF_API_TOKEN = os.environ.get("HF_API_TOKEN")
 MODEL_URL = "https://router.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
@@ -12,10 +14,18 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-@app.route("/generate", methods=["POST"])
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"status": "LLaMA Flask API running"})
+
+@app.route("/generate", methods=["POST", "OPTIONS"])
 def generate():
+    if request.method == "OPTIONS":
+        return "", 200
+
     data = request.json or {}
     prompt = data.get("prompt", "")
+
     if not prompt:
         return jsonify({"error": "Prompt is required"}), 400
 
@@ -25,6 +35,7 @@ def generate():
     }
 
     response = requests.post(MODEL_URL, headers=HEADERS, json=payload)
+
     if response.status_code != 200:
         return jsonify({"error": response.text}), response.status_code
 
