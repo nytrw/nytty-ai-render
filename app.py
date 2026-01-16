@@ -1,55 +1,51 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
 import os
+from cerebras.cloud.sdk import Cerebras
 
 app = Flask(__name__)
-CORS(app)  # handle CORS automatically
+CORS(app)  # enable CORS for frontend
 
-# ---- DeepSeek API ----
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
+# ---- Cerebras client ----
+CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY")
+if not CEREBRAS_API_KEY:
+    raise ValueError("CEREBRAS_API_KEY environment variable not set!")
 
-HEADERS = {
-    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-    "Content-Type": "application/json"
-}
+client = Cerebras(api_key=CEREBRAS_API_KEY)
 
-# ---- Flask Endpoints ----
+# ---- Routes ----
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({"status": "DeepSeek Flask API running"})
+    return jsonify({"status": "Cerebras Flask API running on Render"})
 
-@app.route("/generate", methods=["POST"])
+@app.route("/generate", methods=["POST", "OPTIONS"])
 def generate():
+    # Handle CORS preflight
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
     data = request.json or {}
     prompt = data.get("prompt", "")
     if not prompt:
         return jsonify({"error": "Prompt is required"}), 400
 
-    # ---- Payload for DeepSeek ----
-    payload = {
-        "model": "deepseek-chat",
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        "stream": False
-    }
-
     try:
-        response = requests.post(DEEPSEEK_URL, headers=HEADERS, json=payload)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
+        completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b",       # adjust model if needed
+            max_completion_tokens=1024,
+            temperature=0.2,
+            top_p=1,
+            stream=False
+        )
+        generated_text = completion.choices[0].message.content
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-    result = response.json()
-    # OpenAI-style response structure
-    generated_text = result["choices"][0]["message"]["content"]
 
     return jsonify({"response": generated_text})
 
 
 if __name__ == "__main__":
-    # Use Render-friendly port or default 5000
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Render sets the PORT environment variable
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
