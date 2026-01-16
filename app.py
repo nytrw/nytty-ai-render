@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 HF_API_TOKEN = os.environ.get("HF_API_TOKEN")
-MODEL_URL = "https://router.huggingface.co/hf-inference/models/meta-llama/Llama-2-7b-chat-hf"
+MODEL_URL = "https://router.huggingface.co/hf-inference/models/meta-llama/Meta-Llama-3-8B-Instruct"
 
 HEADERS = {
     "Authorization": f"Bearer {HF_API_TOKEN}",
