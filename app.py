@@ -38,7 +38,10 @@ def generate():
     user_id = request.remote_addr
 
     if not check_limit(user_id):
-        return jsonify({"error": f"Daily limit of {DAILY_LIMIT} prompts reached"}), 429
+        # Friendly response when limit is reached
+        return jsonify({
+            "response": f"You’ve reached your daily limit of {DAILY_LIMIT} prompts. Please try again tomorrow."
+        }), 429
 
     data = request.json or {}
     prompt = data.get("prompt", "")
