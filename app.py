@@ -13,7 +13,7 @@ client = Cerebras(api_key=CEREBRAS_API_KEY)
 
 # ---- Usage tracking ----
 usage = {}  # { user_id: {"count": 0, "date": "YYYY-MM-DD"} }
-DAILY_LIMIT = 15
+DAILY_LIMIT = 50
 
 def check_limit(user_id):
     today = datetime.utcnow().strftime("%Y-%m-%d")
